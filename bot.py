@@ -1,4 +1,13 @@
 #! ./venv/bin/python3
+
+"""
+Copyright © Krypton 2019-Present - https://github.com/kkrypt0nn (https://krypton.ninja)
+Description:
+🐍 A simple template to start to code your own and personalized Discord bot in Python
+
+Version: 6.2.0
+"""
+
 import discord
 from discord.ext import commands
 
@@ -69,12 +78,6 @@ file_handler.setFormatter(file_handler_formatter)
 
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
-
-from discord import app_commands
-
-@app_commands.context_menu()
-async def react(interaction: discord.Interaction, message: discord.Message):
-    await interaction.response.send_message('Very cool message!', ephemeral=True)
 
 
 class DiscordBot(commands.Bot):
