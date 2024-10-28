@@ -1,0 +1,6 @@
+# discord bot
+discord
+python-dotenv
+
+aiosqlite
+aiohttp
