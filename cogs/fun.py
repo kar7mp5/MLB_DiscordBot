@@ -6,31 +6,39 @@ Description:
 Version: 6.2.0
 """
 
-import random
-import aiohttp
 import discord
 from discord.ext import commands
 from discord.ext.commands import Context
+import aiohttp
+import random
 
-# Choice view for coin flip
+
+
+
 class Choice(discord.ui.View):
-    def __init__(self) -> None:
+
+    def __init__(self):
         super().__init__()
         self.value = None
 
+
     @discord.ui.button(label="Heads", style=discord.ButtonStyle.blurple)
-    async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+    async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
         self.value = "heads"
         self.stop()
 
+
     @discord.ui.button(label="Tails", style=discord.ButtonStyle.blurple)
-    async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+    async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
         self.value = "tails"
         self.stop()
 
 
+
+
 class RockPaperScissors(discord.ui.Select):
-    def __init__(self) -> None:
+
+    def __init__(self):
         options = [
             discord.SelectOption(label="Scissors", description="You choose scissors.", emoji="✂"),
             discord.SelectOption(label="Rock", description="You choose rock.", emoji="🪨"),
@@ -38,7 +46,8 @@ class RockPaperScissors(discord.ui.Select):
         ]
         super().__init__(placeholder="Choose...", min_values=1, max_values=1, options=options)
 
-    async def callback(self, interaction: discord.Interaction) -> None:
+
+    async def callback(self, interaction: discord.Interaction):
         choices = {"rock": 0, "paper": 1, "scissors": 2}
         user_choice = self.values[0].lower()
         user_choice_index = choices[user_choice]
@@ -63,18 +72,25 @@ class RockPaperScissors(discord.ui.Select):
         await interaction.response.edit_message(embed=result_embed, content=None, view=None)
 
 
+
+
 class RockPaperScissorsView(discord.ui.View):
-    def __init__(self) -> None:
+
+    def __init__(self):
         super().__init__()
         self.add_item(RockPaperScissors())
+
+
         
 
 class Fun(commands.Cog, name="fun"):
-    def __init__(self, bot) -> None:
+
+    def __init__(self, bot):
         self.bot = bot
 
+
     @commands.hybrid_command(name="randomfact", description="Get a random fact.")
-    async def randomfact(self, context: Context) -> None:
+    async def randomfact(self, context: Context):
         async with aiohttp.ClientSession() as session:
             async with session.get("https://uselessfacts.jsph.pl/random.json?language=en") as request:
                 if request.status == 200:
@@ -84,8 +100,9 @@ class Fun(commands.Cog, name="fun"):
                     embed = discord.Embed(title="Error!", description="There is something wrong with the API, please try again later", color=0xE02B2B)
                 await context.send(embed=embed)
 
+
     @commands.hybrid_command(name="coinflip", description="Make a coin flip, but give your bet before.")
-    async def coinflip(self, context: Context) -> None:
+    async def coinflip(self, context: Context):
         buttons = Choice()
         embed = discord.Embed(description="What is your bet?", color=0xBEBEFE)
         message = await context.send(embed=embed, view=buttons)
@@ -97,11 +114,12 @@ class Fun(commands.Cog, name="fun"):
             embed = discord.Embed(description=f"Woops! You guessed `{buttons.value}` and I flipped the coin to `{result}`, better luck next time!", color=0xE02B2B)
         await message.edit(embed=embed, view=None, content=None)
 
+
     @commands.hybrid_command(name="rps", description="Play the rock paper scissors game against the bot.")
-    async def rock_paper_scissors(self, context: Context) -> None:
+    async def rock_paper_scissors(self, context: Context):
         view = RockPaperScissorsView()
         await context.send("Please make your choice", view=view)
 
 
-async def setup(bot) -> None:
+async def setup(bot):
     await bot.add_cog(Fun(bot))
