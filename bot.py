@@ -35,6 +35,7 @@ intents.message_content = True  # Enable message content intent
 
 # Custom logging formatter with colors
 class LoggingFormatter(logging.Formatter):
+
     black = "\x1b[30m"
     red = "\x1b[31m"
     green = "\x1b[32m"
@@ -51,6 +52,7 @@ class LoggingFormatter(logging.Formatter):
         logging.ERROR: red,
         logging.CRITICAL: red + bold,
     }
+
 
     def format(self, record):
         log_color = self.COLORS[record.levelno]
@@ -81,13 +83,16 @@ logger.addHandler(file_handler)
 
 
 class DiscordBot(commands.Bot):
+
     def __init__(self):
         super().__init__(command_prefix=commands.when_mentioned_or(config["prefix"]), intents=intents, help_command=None)
         self.logger = logger
         self.config = config
 
+
     async def on_ready(self):
         print(f'We have logged in as {self.user}')
+
 
     async def load_cogs(self):
         """
@@ -105,6 +110,7 @@ class DiscordBot(commands.Bot):
                         f"Failed to load extension {extension}\n{exception}"
                     )
 
+
     async def setup_hook(self) -> None:
         """
         This will just be executed when the bot starts the first time.
@@ -121,6 +127,7 @@ class DiscordBot(commands.Bot):
         self.logger.info("Command Tree Preview:")
         for command in self.tree.walk_commands():
             self.logger.info(f"- {command.name}: {command.description}")
+
 
     async def on_message(self, message):
         if message.author == self.user or message.author.bot:
