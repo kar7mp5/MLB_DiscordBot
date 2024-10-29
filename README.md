@@ -3,7 +3,7 @@
 Discord chat bot with llm.  
 
 ### Way to setup
-
+---
 You need to set up the bot environment parameters.
 
 #### `config.json` file
@@ -22,7 +22,7 @@ DISCORD_TOKEN=<discord_bot_token>
 ```
 
 ### Quick Start
-
+---
 `install.sh` help to set up virtual environment and install python libraries automatically on `linux`.  
 
 ```bash
@@ -36,5 +36,5 @@ $ pip3 install -r requirements.txt
 ```
 
 ### LICENSE
-
+---
 This project is licensed under the Apache License 2.0 - see the [LICENSE.md](./LICENSE) file for details.
