@@ -19,6 +19,9 @@ import json
 import sys
 import os
 
+import aiosqlite
+from database import DatabaseManager
+
 # Check if the config.json file exists
 config_path = f"{os.path.realpath(os.path.dirname(__file__))}/config.json"
 if not os.path.isfile(config_path):
@@ -94,6 +97,17 @@ class DiscordBot(commands.Bot):
         print(f'We have logged in as {self.user}')
 
 
+    async def init_db(self) -> None:
+        async with aiosqlite.connect(
+            f"{os.path.realpath(os.path.dirname(__file__))}/database/database.db"
+        ) as db:
+            with open(
+                f"{os.path.realpath(os.path.dirname(__file__))}/database/schema.sql"
+            ) as file:
+                await db.executescript(file.read())
+            await db.commit()
+
+
     async def load_cogs(self):
         """
         The code in this function is executed whenever the bot will start.
@@ -122,12 +136,18 @@ class DiscordBot(commands.Bot):
             f"Running on: {platform.system()} {platform.release()} ({os.name})"
         )
         self.logger.info("-------------------")
+        await self.init_db()
         await self.load_cogs()
         await self.tree.sync()
         self.logger.info("Command Tree Preview:")
         for command in self.tree.walk_commands():
             self.logger.info(f"- {command.name}: {command.description}")
 
+        self.database = DatabaseManager(
+            connection=await aiosqlite.connect(
+                f"{os.path.realpath(os.path.dirname(__file__))}/database/database.db"
+            )
+        )
 
     async def on_message(self, message):
         if message.author == self.user or message.author.bot:
