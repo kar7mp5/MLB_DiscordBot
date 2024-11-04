@@ -36,6 +36,7 @@ class GPT(commands.Cog, name="gpt"):
             # Send an error message if an exception occurs
             await context.send("An error occurred while processing your request.")
 
+
 async def setup(bot):
     # Add the GPT cog to the bot
     await bot.add_cog(GPT(bot))

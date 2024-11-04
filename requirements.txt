@@ -5,4 +5,17 @@ python-dotenv
 aiosqlite
 aiohttp
 
+# gpt
 openai>=1.0.0
+
+# RAG
+langchain
+langchain-community
+wikipedia
+sentence_transformers
+chromadb
+pandas
+tiktoken
+chroma-hnswlib==0.7.3
+chroma-migrate==0.0.7
+chromadb==0.4.18
