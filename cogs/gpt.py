@@ -20,14 +20,22 @@ from langchain.embeddings import SentenceTransformerEmbeddings
 
 
 def extract_keyword(model, user_prompt):
-    """Extract keyword from user prompt using LLM model"""
+    """Extract keyword from user prompt using LLM model
+    
+    Args:
+        model (langchain_community.llms.Ollama): local llm model; gemma2:2b
+        user_prompt (str): user question prompt
+        
+    Returns:
+        keyword (str): keyword extracted from user prompts
+    """
 
     keyword_extract_system_prompt = """
 Think and write your step-by-step reasoning before responding.
 Please write only the fully spelled-out form of the acronym in English that corresponds to the following user's question, without abbreviations or additional text.
 If you don't know how to respond, just say false.
 """
-    
+
     template = """
 <|begin_of_text|>
 <|start_header_id|>system<|end_header_id|>
@@ -45,20 +53,39 @@ If you don't know how to respond, just say false.
     return keyword
 
 
+
+
 def get_wikipedia_content(keyword):
-    """Fetch content from Wikipedia based on the keyword"""
+    """Fetch content from Wikipedia based on the keyword
+    
+    Args:
+        keyword (str): search keyword on wikipedia
+        
+    Returns:
+        page_content (str): search keyword that exists on wikipedia database
+    """
     try:
         search_results = wikipedia.search(keyword)
         if not search_results:
             return None
         page_content = wikipedia.page(search_results[0]).content
         return page_content
+
     except Exception as e:
         print(f"Error fetching Wikipedia content: {e}")
         return None
 
+
 def generate_response(model, user_prompt, content=None):
-    """Generate response using GPT model with optional document content"""
+    """Generate response using GPT model with optional document content
+    
+    Args:
+        model (langchain_community.llms.Ollama): local llm model; gemma2:2b
+        user_prompt (str): user question prompt
+
+    Returns:
+        response (str): result of user's prompt
+    """
 
     system_prompt = """
 Please write all conversations in Korean(한국어).
@@ -96,6 +123,8 @@ Write the article title using ## in Markdown syntax.
         return response
 
 
+
+
 class GPT(commands.Cog, name="gpt"):
 
     def __init__(self, bot):
@@ -113,6 +142,7 @@ class GPT(commands.Cog, name="gpt"):
             
             keyword = extract_keyword(model, message)
 
+            # if keyword is existed, the model use RAG
             if keyword == "false":
                 print("키워드를 찾을 수 없습니다. 검색 없이 응답을 생성합니다.")
                 response = generate_response(model, message)
