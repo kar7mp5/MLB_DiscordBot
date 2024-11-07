@@ -7,11 +7,11 @@ Copyright © kar7mp5 2024-Present - https://github.com/kar7mp5
 from discord.ext import commands
 from discord.ext.commands import Context
 
-# llm model
+# LLM model import
 from langchain_community.llms import Ollama
 from langchain import PromptTemplate
 
-# RAG
+# RAG (Retrieval-Augmented Generation)
 import wikipedia
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -19,26 +19,56 @@ from langchain.chains import RetrievalQA
 from langchain.vectorstores import Chroma
 from langchain.embeddings import SentenceTransformerEmbeddings
 
+import os
 
 
+def get_prompts(file_list=None):
+    """Fetch prompt text from specified files.
 
-def extract_keyword(model, user_prompt):
-    """Extract keyword from user prompt using LLM model
-    
     Args:
-        model (langchain_community.llms.Ollama): local llm model; gemma2:2b
-        user_prompt (str): user question prompt
-        
+        file_list (list, optional): List of relative file paths for prompt files.
+    
     Returns:
-        keyword (str): keyword extracted from user prompts
+        dict: Dictionary containing content of each prompt file.
     """
+    if file_list is not None:
+        # Generate full paths based on current directory
+        full_file_list = [os.path.join(os.path.dirname(os.getcwd()), file_path) for file_path in file_list]
+        del file_list  # Clean up original list
 
-    keyword_extract_system_prompt = """
-Think and write your step-by-step reasoning before responding.
-Please write only the fully spelled-out form of the acronym in English that corresponds to the following user's question, without abbreviations or additional text.
-If you don't know how to respond, just say false.
-"""
+        # Check if all specified files exist
+        file_exist = all(os.path.exists(file_path) for file_path in full_file_list)
 
+        if file_exist:
+            prompts = {}
+
+            for file_path in full_file_list:
+                print(f"Loading prompt:\033[96m{os.path.basename(file_path)}\033[0m")
+                with open(file_path) as f:
+                    prompts[os.path.basename(file_path).replace('.txt', '')] = f.read()
+
+            return prompts
+
+        else:
+            print("FileNotFoundError")
+            return None
+    else:
+        print("FileNotFoundError")
+        return None
+
+
+def extract_keyword(model, user_prompt, keyword_extract_prompt):
+    """Extracts a keyword from the user's prompt using a language model.
+
+    Args:
+        model (langchain_community.llms.Ollama): Local LLM model (e.g., gemma2:2b).
+        user_prompt (str): User's input prompt for question.
+        keyword_extract_prompt (str): Prompt for extracting keywords.
+
+    Returns:
+        str: Extracted keyword from the user's prompt.
+    """
+    # Template for the keyword extraction prompt
     template = """
 <|begin_of_text|>
 <|start_header_id|>system<|end_header_id|>
@@ -51,19 +81,19 @@ If you don't know how to respond, just say false.
 """
     
     prompt = PromptTemplate(input_variables=['system_prompt', 'user_prompt'], template=template)
-    keyword = model(prompt.format(system_prompt=keyword_extract_system_prompt, user_prompt=user_prompt)).strip()
+    keyword = model(prompt.format(system_prompt=keyword_extract_prompt, user_prompt=user_prompt)).strip()
     
     return keyword
 
 
 def get_wikipedia_content(keyword):
-    """Fetch content from Wikipedia based on the keyword
-    
+    """Fetches content from Wikipedia based on a search keyword.
+
     Args:
-        keyword (str): search keyword on wikipedia
-        
+        keyword (str): Keyword to search in Wikipedia.
+    
     Returns:
-        page_content (str): search keyword that exists on wikipedia database
+        str: Content of the Wikipedia page related to the keyword, if available.
     """
     try:
         search_results = wikipedia.search(keyword)
@@ -77,23 +107,18 @@ def get_wikipedia_content(keyword):
         return None
 
 
-def generate_response(model, user_prompt, content=None):
-    """Generate response using GPT model with optional document content
-    
+def generate_response(model, user_prompt, system_prompt, content=None):
+    """Generates a response using an LLM model with optional context from Wikipedia.
+
     Args:
-        model (langchain_community.llms.Ollama): local llm model; gemma2:2b
-        user_prompt (str): user question prompt
-
-    Returns:
-        response (str): result of user's prompt
-    """
-
-    system_prompt = """
-Please write all conversations in Korean(한국어).
-Think and write your step-by-step reasoning before responding.
-Write the article title using ## in Markdown syntax.
-"""
+        model (langchain_community.llms.Ollama): Local LLM model (e.g., gemma2:2b).
+        user_prompt (str): User's input prompt for question.
+        system_prompt (str): System-level prompt for guiding the response.
+        content (str, optional): Wikipedia content to include for enhanced context.
     
+    Returns:
+        str: Model's response based on the user's prompt.
+    """
     template = """
 <|begin_of_text|>
 <|start_header_id|>system<|end_header_id|>
@@ -104,56 +129,83 @@ Write the article title using ## in Markdown syntax.
 <|eot_id|>
 <|start_header_id|>assistant<|end_header_id|>
 """
-    
+
     prompt = PromptTemplate(input_variables=['system_prompt', 'user_prompt'], template=template)
+    
     if content:
-        # Split and embed content if provided
+        # Split content and embed for RAG processing if content is provided
         doc = Document(page_content=content)
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
         all_splits = text_splitter.split_documents([doc])
         embeddings = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
         vectorstore = Chroma.from_documents(documents=all_splits, embedding=embeddings)
         
-        # Use RAG for response generation
+        # Retrieval-Augmented Generation (RAG) chain for context-based response
         qachain = RetrievalQA.from_chain_type(model, retriever=vectorstore.as_retriever())
         response = qachain(prompt.format(system_prompt=system_prompt, user_prompt=user_prompt))
         return response['result']
+    
     else:
-        # Generate response without additional document
+        # Generate response without additional context
         response = model(prompt.format(system_prompt=system_prompt, user_prompt=user_prompt)).strip()
         return response
 
 
-
-
 class GPT(commands.Cog, name="gpt"):
+    """Discord bot cog that interacts with an LLM model for generating responses.
+
+    Attributes:
+        bot (commands.Bot): The Discord bot instance.
+        prompts (dict): Loaded prompts used for interactions with the model.
+    """
 
     def __init__(self, bot):
         self.bot = bot
+        self.prompts = get_prompts(["prompt/system_prompt.txt", "prompt/keyword_extract_prompt.txt"])
 
-
-    @commands.hybrid_command(name="gpt", description="Can communicate with gpt.")
+    @commands.hybrid_command(name="gpt", description="Interact with GPT for responses.")
     async def gpt(self, context: Context, *, message: str):
+        """Discord command to generate a response using GPT.
+
+        Args:
+            context (Context): The context in which the command was used.
+            message (str): User's input message to be processed.
+        
+        Returns:
+            None
+        """
         try:
-            # Send an initial response indicating processing
+            # Send a message to indicate that processing is ongoing
             initial_message = await context.send("Processing your request, please wait...")
 
             model = Ollama(model='gemma2:2b', stop=["<|eot_id|>"])
             
-            keyword = extract_keyword(model, message)
+            # Extract keyword using the prompt
+            keyword = extract_keyword(model=model, 
+                                      user_prompt=message, 
+                                      keyword_extract_prompt=self.prompts["keyword_extract_prompt"])
 
-            # if keyword is existed, the model use RAG
+            # Determine if a keyword was successfully extracted
             if keyword == "false":
-                print("키워드를 찾을 수 없습니다. 검색 없이 응답을 생성합니다.")
-                response = generate_response(model, message)
+                print("No keyword found. Generating response without additional context.")
+                response = generate_response(model=model,
+                                             user_prompt=message, 
+                                             system_prompt=self.prompts["system_prompt"])
+
             else:
+                # Retrieve Wikipedia content based on keyword, if available
                 content = get_wikipedia_content(keyword)
                 if content:
-                    print(f"{keyword}에 대한 Wikipedia 문서를 찾았습니다.")
-                    response = generate_response(model, message, content=content)
+                    print(f"Found Wikipedia content for '{keyword}'.")
+                    response = generate_response(model=model,
+                                                 user_prompt=message, 
+                                                 system_prompt=self.prompts["system_prompt"], 
+                                                 content=content)
                 else:
-                    print("문서를 찾을 수 없습니다. 검색 없이 응답을 생성합니다.")
-                    response = generate_response(model, message)
+                    print("No content found. Generating response without additional context.")
+                    response = generate_response(model=model,
+                                                 user_prompt=message, 
+                                                 system_prompt=self.prompts["system_prompt"])
 
             # Edit the initial message with the GPT response
             await initial_message.edit(content=response)
@@ -165,5 +217,4 @@ class GPT(commands.Cog, name="gpt"):
 
 
 async def setup(bot):
-    # Add the GPT cog to the bot
     await bot.add_cog(GPT(bot))
