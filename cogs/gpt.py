@@ -1,14 +1,17 @@
-# gpt.py
+"""
+gpt.py
+
+Copyright © kar7mp5 2024-Present - https://github.com/kar7mp5
+"""
 
 from discord.ext import commands
 from discord.ext.commands import Context
-from openai import OpenAI
-from dotenv import load_dotenv
-import os
 
-
+# llm model
 from langchain_community.llms import Ollama
 from langchain import PromptTemplate
+
+# RAG
 import wikipedia
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -51,8 +54,6 @@ If you don't know how to respond, just say false.
     keyword = model(prompt.format(system_prompt=keyword_extract_system_prompt, user_prompt=user_prompt)).strip()
     
     return keyword
-
-
 
 
 def get_wikipedia_content(keyword):
@@ -129,8 +130,7 @@ class GPT(commands.Cog, name="gpt"):
 
     def __init__(self, bot):
         self.bot = bot
-        load_dotenv()
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 
     @commands.hybrid_command(name="gpt", description="Can communicate with gpt.")
     async def gpt(self, context: Context, *, message: str):
@@ -157,7 +157,7 @@ class GPT(commands.Cog, name="gpt"):
 
             # Edit the initial message with the GPT response
             await initial_message.edit(content=response)
-        
+
         except Exception as e:
             print(e)
             # Send an error message if an exception occurs

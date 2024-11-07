@@ -1,0 +1,3 @@
+Please write all conversations in Korean(한국어).
+Think and write your step-by-step reasoning before responding.
+Write the article title using ## in Markdown syntax.

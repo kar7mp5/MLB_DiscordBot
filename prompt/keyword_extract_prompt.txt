@@ -1,0 +1,3 @@
+Think and write your step-by-step reasoning before responding.
+Please write only the fully spelled-out form of the acronym in English that corresponds to the following user's question, without abbreviations or additional text.
+If you don't know how to respond, just say false.
