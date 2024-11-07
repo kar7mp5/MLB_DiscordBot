@@ -20,7 +20,6 @@ from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
 
-
 import logging
 import os
 
@@ -52,7 +51,7 @@ def get_prompts(file_list, logger):
 
         for file_path in full_file_list:
             # Log the prompt loading instead of printing
-            logger.info(f"Loading prompt: {os.path.basename(file_path)}")
+            logger.info(f"Loading prompt - {os.path.basename(file_path)}")
             with open(file_path) as f:
                 prompts[os.path.basename(file_path).replace('.txt', '')] = f.read()
 
@@ -65,6 +64,7 @@ def get_prompts(file_list, logger):
 
 def extract_keyword(model, user_prompt, keyword_extract_prompt):
     """Extracts a keyword from the user's prompt using a language model."""
+
     template = """
 <|begin_of_text|>
 <|start_header_id|>system<|end_header_id|>
@@ -77,17 +77,20 @@ def extract_keyword(model, user_prompt, keyword_extract_prompt):
 """
     prompt = PromptTemplate(input_variables=['system_prompt', 'user_prompt'], template=template)
     keyword = model.invoke(prompt.format(system_prompt=keyword_extract_prompt, user_prompt=user_prompt)).strip()
+
     return keyword
 
 
 def get_wikipedia_content(keyword):
     """Fetches content from Wikipedia based on a search keyword."""
+
     try:
         search_results = wikipedia.search(keyword)
         if not search_results:
             return None
         page_content = wikipedia.page(search_results[0]).content
         return page_content
+
     except Exception as e:
         logger.error(f"Error fetching Wikipedia content: {e}")
         return None
@@ -95,6 +98,7 @@ def get_wikipedia_content(keyword):
 
 def generate_response(model, user_prompt, system_prompt, content=None):
     """Generates a response using an LLM model with optional context from Wikipedia."""
+
     template = """
 <|begin_of_text|>
 <|start_header_id|>system<|end_header_id|>
@@ -134,7 +138,7 @@ class GPT(commands.Cog, name="gpt"):
     async def gpt(self, context: Context, *, message: str):
         """Discord command to generate a response using GPT."""
         try:
-            initial_message = await context.send("Processing your request, please wait...")
+            initial_message = await context.send("답변을 생성하는 중입니다. 잠시만 기다려주세요...")
             model = OllamaLLM(model='gemma2:2b', stop=["<|eot_id|>"])
             keyword = extract_keyword(model=model, 
                                       user_prompt=message, 
@@ -149,6 +153,7 @@ class GPT(commands.Cog, name="gpt"):
                 content = get_wikipedia_content(keyword)
                 if content:
                     logger.info(f"Found Wikipedia content for '{keyword}'.")
+                    await context.send(f"다음 {keyword} 문서를 검색하겠습니다...")
                     response = generate_response(model=model,
                                                  user_prompt=message, 
                                                  system_prompt=self.prompts["system_prompt"], 
