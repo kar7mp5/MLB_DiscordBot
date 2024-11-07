@@ -1,3 +1,9 @@
+"""
+gpt.py
+
+Copyright © kar7mp5 2024-Present - https://github.com/kar7mp5
+"""
+
 from discord.ext import commands
 from discord.ext.commands import Context
 
