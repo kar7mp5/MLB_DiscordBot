@@ -22,6 +22,7 @@ import os
 import aiosqlite
 from database import DatabaseManager
 
+
 # Check if the config.json file exists
 config_path = f"{os.path.realpath(os.path.dirname(__file__))}/config.json"
 if not os.path.isfile(config_path):
@@ -34,6 +35,8 @@ else:
 # Set up Discord intents
 intents = discord.Intents.default()
 intents.message_content = True  # Enable message content intent
+
+
 
 
 # Custom logging formatter with colors
@@ -68,6 +71,8 @@ class LoggingFormatter(logging.Formatter):
         return formatter.format(record)
 
 
+
+
 # Configure logger
 logger = logging.getLogger("discord_bot")
 logger.setLevel(logging.INFO)
@@ -83,6 +88,8 @@ file_handler.setFormatter(file_handler_formatter)
 
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
+
+
 
 
 class DiscordBot(commands.Bot):
