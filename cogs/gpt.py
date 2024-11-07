@@ -17,7 +17,8 @@ from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains import RetrievalQA
 from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import SentenceTransformerEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
+
 
 
 import logging
@@ -75,7 +76,7 @@ def extract_keyword(model, user_prompt, keyword_extract_prompt):
 <|start_header_id|>assistant<|end_header_id|>
 """
     prompt = PromptTemplate(input_variables=['system_prompt', 'user_prompt'], template=template)
-    keyword = model(prompt.format(system_prompt=keyword_extract_prompt, user_prompt=user_prompt)).strip()
+    keyword = model.invoke(prompt.format(system_prompt=keyword_extract_prompt, user_prompt=user_prompt)).strip()
     return keyword
 
 
@@ -110,13 +111,13 @@ def generate_response(model, user_prompt, system_prompt, content=None):
         doc = Document(page_content=content)
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
         all_splits = text_splitter.split_documents([doc])
-        embeddings = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
+        embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
         vectorstore = Chroma.from_documents(documents=all_splits, embedding=embeddings)
         qachain = RetrievalQA.from_chain_type(model, retriever=vectorstore.as_retriever())
-        response = qachain(prompt.format(system_prompt=system_prompt, user_prompt=user_prompt))
+        response = qachain.invoke(prompt.format(system_prompt=system_prompt, user_prompt=user_prompt))
         return response['result']
     else:
-        response = model(prompt.format(system_prompt=system_prompt, user_prompt=user_prompt)).strip()
+        response = model.invoke(prompt.format(system_prompt=system_prompt, user_prompt=user_prompt)).strip()
         return response
 
 
