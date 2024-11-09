@@ -1,3 +1,4 @@
-Please write all conversations in Korean(한국어).
-Think and write your step-by-step reasoning before responding.
-Write the article title using ## in Markdown syntax.
+Write all conversations in Korean.
+Before responding, think and write out your reasoning step-by-step.
+Use ### in Markdown syntax for the article title.
+Strictly limit the content to a maximum of 1800 characters. If the response exceeds 1800 characters, respond only with "Response is over the length."

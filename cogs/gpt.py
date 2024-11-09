@@ -160,6 +160,8 @@ def generate_response(model, user_prompt, system_prompt, content=None):
         
         # Use the QA chain to generate the response with contextual information
         response = qachain.invoke(prompt.format(system_prompt=system_prompt, user_prompt=user_prompt))
+        del vectorstore
+        
         return response['result']
     else:
         # Generate the response without additional context if `content` is not provided
@@ -212,6 +214,9 @@ class GPT(commands.Cog, name="gpt"):
                 response = generate_response(model=model,
                                              user_prompt=message, 
                                              system_prompt=self.prompts["system_prompt"])
+
+                await initial_message.edit(content=f"## 질문: {message}\n\n ## 답변: \n{response}")
+
             else:
                 # If a keyword is found, attempt to retrieve content from Wikipedia
                 content = get_wikipedia_content(keyword)
@@ -224,6 +229,8 @@ class GPT(commands.Cog, name="gpt"):
                                                  user_prompt=message, 
                                                  system_prompt=self.prompts["system_prompt"], 
                                                  content=content)
+                    await initial_message.edit(content=f"## 질문: {message}\n\n## 답변: \n{response}\n### [참고문헌](https://en.wikipedia.org/wiki/{keyword.replace(' ', '_')})")
+
                 else:
                     # If no Wikipedia content is found, proceed without additional context
                     self.logger.info("No content found. Generating response without additional context.")
@@ -231,13 +238,11 @@ class GPT(commands.Cog, name="gpt"):
                                                  user_prompt=message, 
                                                  system_prompt=self.prompts["system_prompt"])
 
-            # Update the initial message with the generated response
-            await initial_message.edit(content=response)
+                    await initial_message.edit(content=f"## 질문: {message}\n\n## 답변: \n{response}")
 
         except Exception as e:
-            # Log error details and notify the user of an error in response generation
-            self.logger.error(f"Error in gpt command: {e}")
-            await context.send("An error occurred while processing your request.")
+            logger.error(f"Error in gpt command: {e}")
+            await context.send("답변하는데 오류가 발생하였습니다. 일반적으로 답변 단어수가 2,000자를 넘긴 경우에 해당할 것입니다.")
 
 
 async def setup(bot):
