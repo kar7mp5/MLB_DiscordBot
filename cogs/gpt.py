@@ -16,7 +16,7 @@ import wikipedia
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains import RetrievalQA
-from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 import asyncio
 
@@ -147,7 +147,7 @@ async def generate_response(model, user_prompt, system_prompt, content=None):
         all_splits = text_splitter.split_documents([doc])
 
         embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-        vectorstore = Chroma.from_documents(documents=all_splits, embedding=embeddings)
+        vectorstore = FAISS.from_documents(documents=all_splits, embedding=embeddings)
 
         qachain = RetrievalQA.from_chain_type(model, retriever=vectorstore.as_retriever())
         
@@ -188,25 +188,37 @@ class GPT(commands.Cog, name="gpt"):
             keyword = await extract_keyword(model=model, user_prompt=message, keyword_extract_prompt=self.prompts["keyword_extract_prompt"])
 
             if keyword == "false":
-                # If no keyword is found, generate a response without Wikipedia context
-                response = await generate_response(model=model, user_prompt=message, system_prompt=self.prompts["system_prompt"])
+                # If no keyword is found, generate response without additional Wikipedia context
+                self.logger.info("No keyword found. Generating response without additional context.")
+                response = await generate_response(model=model,
+                                             user_prompt=message, 
+                                             system_prompt=self.prompts["system_prompt"])
+
+                await initial_message.edit(content=f"## 질문: {message}\n\n ## 답변: \n{response}")
+
             else:
                 # Retrieve Wikipedia content if a keyword is extracted
                 content = await get_wikipedia_content(keyword)
                 if content:
+                    self.logger.info(f"Found Wikipedia content for '{keyword}'.")
                     await initial_message.edit(content=f"다음 {keyword} 문서를 검색하겠습니다...")
-                    response = await generate_response(model=model, user_prompt=message, system_prompt=self.prompts["system_prompt"], content=content)
+
+                    # Generate response using both the user message and the Wikipedia content
+                    response = await generate_response(model=model,
+                                                 user_prompt=message, 
+                                                 system_prompt=self.prompts["system_prompt"], 
+                                                 content=content)
+                    await initial_message.edit(content=f"## 질문: {message}\n\n## 답변: \n{response}\n### [참고문헌](https://en.wikipedia.org/wiki/{keyword.replace(' ', '_')})")
+
                 else:
                     # Generate response without additional context if no content is found
                     response = await generate_response(model=model, user_prompt=message, system_prompt=self.prompts["system_prompt"])
 
-            # Update initial message with the generated response
-            await initial_message.edit(content=response)
+                    await initial_message.edit(content=f"## 질문: {message}\n\n## 답변: \n{response}")
 
         except Exception as e:
-            # Log error details and notify the user of an error in response generation
-            self.logger.error(f"Error in gpt command: {e}")
-            await context.send("An error occurred while processing your request.")
+            logger.error(f"Error in gpt command: {e}")
+            await context.send("답변하는데 오류가 발생하였습니다. 일반적으로 답변 단어수가 2,000자를 넘긴 경우에 해당할 것입니다.")
 
 async def setup(bot):
     await bot.add_cog(GPT(bot))
