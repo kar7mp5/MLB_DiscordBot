@@ -153,6 +153,8 @@ async def generate_response(model, user_prompt, system_prompt, content=None):
         
         # Generate a response using the QA chain and context
         response = qachain.invoke(prompt.format(system_prompt=system_prompt, user_prompt=user_prompt))
+        del vectorstore
+        
         return response['result']
     else:
         # Generate a response without additional context
